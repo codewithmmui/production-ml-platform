@@ -1,0 +1,5 @@
+model_path: artifacts/model.joblib
+metadata_path: artifacts/metadata.json
+request_timeout_seconds: 5
+max_batch_size: 1000
+dependency_health_required: false

@@ -1,0 +1,10 @@
+test_size: 0.20
+validation_size: 0.20
+random_seed: 42
+tuning_iterations: 8
+quality_gate:
+  min_roc_auc: 0.72
+  min_pr_auc: 0.40
+  min_f1: 0.45
+  max_latency_ms: 25
+  min_champion_improvement: 0.005

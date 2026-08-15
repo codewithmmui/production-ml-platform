@@ -1,0 +1,6 @@
+project: production-ml-platform
+seed: 42
+target: churned
+entity: customer_id
+categorical_features: [subscription_plan, contract_type, region]
+numerical_features: [tenure_months, monthly_spend, total_spend, support_tickets, login_frequency, payment_failures, days_since_last_login, usage_score]

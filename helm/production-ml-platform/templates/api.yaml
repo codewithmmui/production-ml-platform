@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: {{ .Release.Name }}-api, labels: {app.kubernetes.io/name: {{ .Chart.Name }}}}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector: {matchLabels: {app: {{ .Release.Name }}-api}}
+  template:
+    metadata: {labels: {app: {{ .Release.Name }}-api}}
+    spec:
+      automountServiceAccountToken: false
+      securityContext: {runAsNonRoot: true, runAsUser: 10001, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports: [{name: http, containerPort: 8000}]
+          env: [{name: ENVIRONMENT, value: {{ .Values.environment | quote }}, {name: REDIS_URL, value: {{ .Values.redis.url | quote }}}]
+          readinessProbe: {httpGet: {path: /ready, port: http}}
+          livenessProbe: {httpGet: {path: /health, port: http}}
+          resources: {{ toYaml .Values.resources | nindent 12 }}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: {{ .Release.Name }}-api}
+spec: {selector: {app: {{ .Release.Name }}-api}, ports: [{port: 80, targetPort: http}]}

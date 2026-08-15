@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: ml-api, namespace: ml-platform, labels: {app: ml-api}}
+spec:
+  replicas: 2
+  selector: {matchLabels: {app: ml-api}}
+  template:
+    metadata: {labels: {app: ml-api}}
+    spec:
+      automountServiceAccountToken: false
+      securityContext: {runAsNonRoot: true, runAsUser: 10001, fsGroup: 10001, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: api
+          image: ghcr.io/OWNER/production-ml-platform:latest
+          ports: [{name: http, containerPort: 8000}]
+          envFrom: [{configMapRef: {name: ml-api-config}}, {secretRef: {name: ml-platform-secrets}}]
+          readinessProbe: {httpGet: {path: /ready, port: http}, initialDelaySeconds: 10, periodSeconds: 10}
+          livenessProbe: {httpGet: {path: /health, port: http}, initialDelaySeconds: 20, periodSeconds: 15}
+          resources: {requests: {cpu: 200m, memory: 256Mi}, limits: {cpu: "1", memory: 1Gi}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}

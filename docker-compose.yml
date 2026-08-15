@@ -1,0 +1,52 @@
+name: production-ml-platform
+services:
+  api:
+    build: {context: ., dockerfile: docker/Dockerfile.api}
+    ports: ["8000:8000"]
+    environment:
+      MODEL_PATH: /app/artifacts/model.joblib
+      MODEL_METADATA_PATH: /app/artifacts/metadata.json
+      DATABASE_URL: postgresql+psycopg://mlplatform:${POSTGRES_PASSWORD:-local-only}@postgres:5432/mlplatform
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+  postgres:
+    image: postgres:16-alpine
+    environment: {POSTGRES_DB: mlplatform, POSTGRES_USER: mlplatform, POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-local-only}"}
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    healthcheck: {test: [CMD-SHELL, "pg_isready -U mlplatform"], interval: 5s, timeout: 3s, retries: 10}
+  redis:
+    image: redis:7-alpine
+    command: [redis-server, --appendonly, "yes"]
+    volumes: [redis-data:/data]
+    healthcheck: {test: [CMD, redis-cli, ping], interval: 5s, timeout: 3s, retries: 10}
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.18.0
+    command:
+      - mlflow
+      - server
+      - --host
+      - 0.0.0.0
+      - --port
+      - "5000"
+      - --backend-store-uri
+      - "postgresql+psycopg://mlplatform:${POSTGRES_PASSWORD:-local-only}@postgres:5432/mlplatform"
+      - --default-artifact-root
+      - /mlartifacts
+    ports: ["5000:5000"]
+    volumes: [mlflow-data:/mlartifacts]
+    depends_on: {postgres: {condition: service_healthy}}
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    volumes: ["./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro"]
+    ports: ["9090:9090"]
+  grafana:
+    image: grafana/grafana:11.4.0
+    environment: {GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:-local-only}", GF_USERS_ALLOW_SIGN_UP: "false"}
+    volumes: ["./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro", "./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro"]
+    ports: ["3000:3000"]
+volumes: {postgres-data: {}, redis-data: {}, mlflow-data: {}}

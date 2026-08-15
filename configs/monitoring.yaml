@@ -1,0 +1,5 @@
+drift:
+  numeric_ks_pvalue: 0.01
+  numeric_psi: 0.20
+  categorical_js: 0.10
+  minimum_drifted_features: 2

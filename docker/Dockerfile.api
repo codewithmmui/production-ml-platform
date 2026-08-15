@@ -1,0 +1,17 @@
+FROM python:3.12-slim AS builder
+WORKDIR /build
+COPY pyproject.toml README.md ./
+COPY src ./src
+RUN python -m venv /opt/venv && /opt/venv/bin/pip install --no-cache-dir .
+
+FROM python:3.12-slim AS runtime
+ENV PATH="/opt/venv/bin:$PATH" PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+RUN groupadd --gid 10001 mlapp && useradd --uid 10001 --gid mlapp --no-create-home mlapp
+COPY --from=builder /opt/venv /opt/venv
+WORKDIR /app
+COPY --chown=mlapp:mlapp configs ./configs
+COPY --chown=mlapp:mlapp artifacts ./artifacts
+USER 10001:10001
+EXPOSE 8000
+HEALTHCHECK --interval=30s --timeout=3s CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+CMD ["uvicorn", "ml_platform.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]

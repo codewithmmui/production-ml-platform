@@ -1,0 +1,18 @@
+name: CI
+on: [push, pull_request]
+permissions: {contents: read}
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12", cache: pip}
+      - run: pip install -e '.[dev]'
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: mypy src
+      - run: pytest --cov=ml_platform --cov-report=term-missing
+      - run: python -m ml_platform.data.generate --rows 1500 --output data/raw/customers.csv
+      - run: python -m ml_platform.training.train --data data/raw/customers.csv --output artifacts
+      - run: docker build -f docker/Dockerfile.api -t production-ml-platform:test .

@@ -1,0 +1,6 @@
+apiVersion: 1
+providers:
+  - name: ML Platform
+    folder: ML Platform
+    type: file
+    options: {path: /var/lib/grafana/dashboards}

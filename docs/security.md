@@ -1,0 +1,3 @@
+# Security
+
+Threats include malicious API payloads, credential disclosure, dependency/image compromise, untrusted model deserialization, lateral movement, and sensitive telemetry. Mitigations include strict bounded Pydantic schemas, no raw customer logging, external secrets, non-root/read-only containers, dropped Linux capabilities, NetworkPolicy, minimal service accounts, dependency/secret/filesystem scans, and trusted pipeline-only joblib artifacts. Production should verify artifact digest/signature before deserialization, enforce TLS and authentication at the gateway, rotate credentials, generate SBOMs, and audit registry promotion.

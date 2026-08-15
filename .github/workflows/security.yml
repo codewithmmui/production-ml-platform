@@ -1,0 +1,20 @@
+name: Security
+on:
+  push:
+  pull_request:
+  schedule: [{cron: "17 3 * * 1"}]
+permissions: {contents: read, security-events: write}
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install -e . pip-audit
+      - run: pip-audit
+      - uses: gitleaks/gitleaks-action@v2
+        env: {GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"}
+      - uses: aquasecurity/trivy-action@0.28.0
+        with: {scan-type: fs, scan-ref: ., severity: HIGH,CRITICAL, exit-code: "1"}
