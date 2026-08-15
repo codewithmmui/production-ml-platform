@@ -3,6 +3,16 @@ WORKDIR /build
 COPY pyproject.toml README.md ./
 COPY src ./src
 RUN python -m venv /opt/venv && /opt/venv/bin/pip install --no-cache-dir .
+RUN /opt/venv/bin/python -m ml_platform.data.generate \
+      --rows 10000 \
+      --seed 42 \
+      --output /tmp/customers.csv \
+    && MLFLOW_TRACKING_URI=sqlite:////tmp/mlflow.db \
+      /opt/venv/bin/python -m ml_platform.training.train \
+      --data /tmp/customers.csv \
+      --output /build/artifacts \
+    && test -s /build/artifacts/model.joblib \
+    && test -s /build/artifacts/metadata.json
 
 FROM python:3.12-slim AS runtime
 ENV PATH="/opt/venv/bin:$PATH" PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
@@ -10,7 +20,7 @@ RUN groupadd --gid 10001 mlapp && useradd --uid 10001 --gid mlapp --no-create-ho
 COPY --from=builder /opt/venv /opt/venv
 WORKDIR /app
 COPY --chown=mlapp:mlapp configs ./configs
-COPY --chown=mlapp:mlapp artifacts ./artifacts
+COPY --from=builder --chown=mlapp:mlapp /build/artifacts ./artifacts
 USER 10001:10001
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=3s CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"

@@ -44,14 +44,17 @@ make serve
 
 Then open `http://localhost:8000/docs`. The training command writes trusted local artifacts under `artifacts/` and records MLflow lineage under `mlruns/` by default.
 
-For the service stack:
+For the service stack (the API image trains a deterministic bootstrap model in its builder stage,
+so this also works from a clean checkout):
 
 ```bash
-make generate-data && make train
 docker compose up --build
 ```
 
-This starts API (8000), MLflow (5000), Prometheus (9090), Grafana (3000), PostgreSQL, and Redis. Local fallback passwords are development-only; override them in `.env`.
+This starts API (8000), MLflow (5000), Prometheus (9090), Grafana (3000), PostgreSQL,
+and Redis. Local fallback passwords are development-only; override them in `.env`. The bootstrap
+model makes the image independently buildable; production promotion should replace it with a
+digest-verified artifact from the registry rather than rebuilding an image ad hoc.
 
 ## Training and evaluation
 
