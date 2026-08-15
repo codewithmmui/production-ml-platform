@@ -1,6 +1,8 @@
 import argparse
 import hashlib
 import json
+import os
+import shutil
 import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
@@ -31,6 +33,20 @@ DERIVED = [
     "inactive_customer_flag",
     "high_value_customer",
 ]
+
+
+def get_git_sha() -> str:
+    supplied_sha = os.getenv("GIT_SHA", "").strip()
+    if supplied_sha:
+        return supplied_sha
+    if shutil.which("git") is None:
+        return "unavailable"
+    return (
+        subprocess.run(
+            ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=False
+        ).stdout.strip()
+        or "unavailable"
+    )
 
 
 def build_pipeline(model: object) -> Pipeline:
@@ -140,12 +156,7 @@ def train_and_save(data_path: Path, output_dir: Path, *, tune: bool = False) -> 
     output_dir.mkdir(parents=True, exist_ok=True)
     model_path = output_dir / "model.joblib"
     joblib.dump(model, model_path)
-    git_sha = (
-        subprocess.run(
-            ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=False
-        ).stdout.strip()
-        or "unavailable"
-    )
+    git_sha = get_git_sha()
     dataset_hash = hashlib.sha256(data_path.read_bytes()).hexdigest()
     metadata = {
         "model_version": "1",

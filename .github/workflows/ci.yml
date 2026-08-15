@@ -15,4 +15,4 @@ jobs:
       - run: pytest --cov=ml_platform --cov-report=term-missing
       - run: python -m ml_platform.data.generate --rows 1500 --output data/raw/customers.csv
       - run: python -m ml_platform.training.train --data data/raw/customers.csv --output artifacts
-      - run: docker build -f docker/Dockerfile.api -t production-ml-platform:test .
+      - run: docker build --build-arg GIT_SHA="$GITHUB_SHA" -f docker/Dockerfile.api -t production-ml-platform:test .
